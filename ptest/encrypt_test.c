@@ -413,3 +413,143 @@ cleanup:
   PublicKey_clear(pubkey);
   return;
 }
+
+void
+test_import_hex_zeros(int sk)
+{
+  SECStatus rv = SECSuccess;
+  PublicKey pubkey = NULL;
+  PrivateKey pvtkey = NULL;
+  unsigned char privData[CURVE25519_KEY_LEN_HEX+1]; 
+  unsigned char pubData[CURVE25519_KEY_LEN_HEX+1];
+  unsigned char input[67];
+  unsigned char output[256];
+  unsigned char decrypt[256];
+
+  switch (sk) {
+    case 0: 
+    // Public key with one leading zero byte
+    memcpy(privData, "9A160FCC3E642088F79FC0CC67FDC2518FF384F381D861AF4EAA04FB41FF8493", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "00320AC87F8B55C6D5225122FE802E727C20583B28AAB45F466EC4D8049A2A5A", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 1:
+    // Private key with one leading zero byte
+    memcpy(privData, "0099D19060CF79F06F4F2E47975B2A90016C94F43D94025713DBB2A3D9540BE5", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "E566A726E0FC83EFA256F4CCEA71074DBB5C760A9FF47E5C5D4CB8DA9E446052", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 2:
+    // Public key with two leading zero bytes
+    memcpy(privData, "B8345FC51666CCA449A137CE4A4787231733BC8A7588B1947EACF50C0C1ABA9C", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "000067F7884A53538C320A68C64407D426D0F7C8E097308C37E845F2AEDF2E15", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 3:
+    // Private key with two leading zero bytes
+    memcpy(privData, "00000B745F2F667B5ED196AE00DB52387A13ED69D042F763E3739A5540FB3BD0", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "6C1CB015F2F672FEB622E238B5D08E9660D0363A83301D7B7134F48305E13755", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 4:
+    // Public key with one trailing zero byte
+    memcpy(privData, "0ED4CF13ABC12040E07563D3EAD58C8ED261A7D4F52CE54255682E815FE77E0C", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "510F2F0ADCC500101A68F2EF7307D99A4400ECB71FDEC0A7CAA159189198BB00", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 5:
+    // Private key with two trailing zero bytes
+    memcpy(privData, "E425A9CD8091C18A156DD687B68319D428A0B4326BDF0E3AE1D372E1FCEE7100", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "F0EF3EAA07DC16FE8EC11D6A2527894EE486696A75D9887F6AC0AF55FC182423", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 6:
+    // Public key with two trailing zero bytes
+    memcpy(privData, "280930F569B24CA9C71E3203E5D38551CAF2EAF33C92C855F7761DFF9732AAFD", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "4462EBB8299C80242FA17B97859CF05C48D1457A4AFC4FB20FE7EC2815880000", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    case 7:
+    // Private with two trailing zero bytes
+    memcpy(privData, "78A981DABCE595264C030C51BD286035A482E84B60A6BD8E5073A90081B40000", CURVE25519_KEY_LEN_HEX);
+    memcpy(pubData, "636F98F523CDAE924B58B896D815B2036A5090944B1D13BE014DB560D4461972", CURVE25519_KEY_LEN_HEX);
+    break;
+
+    default:
+    PT_CHECKCB(false);
+  }
+
+  for (unsigned int i = 0; i < sizeof(input); i++) {
+    input[i] = i;
+  }
+
+  PT_CHECKC(PublicKey_import_hex(&pubkey, pubData, CURVE25519_KEY_LEN_HEX));
+  PT_CHECKC(PrivateKey_import_hex(&pvtkey, privData, CURVE25519_KEY_LEN_HEX,
+                                  pubData, CURVE25519_KEY_LEN_HEX));
+
+  unsigned int outputLen;
+  PT_CHECKC(PublicKey_encrypt(pubkey, output, &outputLen, sizeof(output),
+                              input, sizeof(input)));
+
+  // Check that can decrypt with imported private key.
+  unsigned int plainLen;
+  PT_CHECKC(PrivateKey_decrypt(pvtkey, decrypt, &plainLen,
+                               sizeof(decrypt), output, outputLen));
+
+  mu_check(plainLen == sizeof(input));
+  mu_check(!memcmp(input, decrypt, sizeof(input)));
+
+cleanup:
+  mu_check(rv == SECSuccess);
+  PublicKey_clear(pubkey);
+  PrivateKey_clear(pvtkey);
+  return;
+}
+
+void
+mu_test_import_hex_leading_zeros_pk1(void)
+{
+  test_import_hex_zeros(0);
+}
+
+void
+mu_test_import_hex_leading_zeros_sk1(void)
+{
+  test_import_hex_zeros(1);
+}
+
+void
+mu_test_import_hex_leading_zeros_pk2(void)
+{
+  test_import_hex_zeros(2);
+}
+
+void
+mu_test_import_hex_leading_zeros_sk2(void)
+{
+  test_import_hex_zeros(3);
+}
+
+void
+mu_test_import_hex_trailing_zeros_pk1(void)
+{
+  test_import_hex_zeros(4);
+}
+
+void
+mu_test_import_hex_trailing_zeros_sk1(void)
+{
+  test_import_hex_zeros(5);
+}
+
+void
+mu_test_import_hex_trailing_zeros_pk2(void)
+{
+  test_import_hex_zeros(6);
+}
+
+void
+mu_test_import_hex_trailing_zeros_sk2(void)
+{
+  test_import_hex_zeros(7);
+}
